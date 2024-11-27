@@ -31,7 +31,7 @@ n = len(df)
 
 # Simulate media cost feature using uniform distribution
 media_cost = np.random.uniform(0,1, size=n)
-df["media_cost"] = 1000*np.where(media_cost >0.3, media_cost, media_cost/4)
+df["media_cost"] = 100*np.where(media_cost >0.3, media_cost, media_cost/4)
 # visualize the media cost using only sundays (does not matter cause the data is uniform)
 df_subset = df[df["day_of_week"] == 7]
 
@@ -44,7 +44,7 @@ plt.savefig('datagen_images/media_cost.png')
 #initialize the adstock effects you want
 alpha = 0.5
 # give the length of adstock effect in days. In veikkaus, this is quite small, since there is all the time new stuff coming
-l = 4
+l = 14
 geometric_adstock_transformer = GeometricAdstockTransformer(alpha=alpha, l=l)
 
 # add transformed variables to data
@@ -72,20 +72,20 @@ plt.savefig('datagen_images/media_cost_adstock_vs_without.png')
 
 # logistic saturation transformation for the media costs
 
-mus = [1e-3,2e-3,3e-3,4e-3]
+mus = [1e-2,2e-2,3e-2,4e-2]
 fig, ax = plt.subplots(figsize=(7, 6))
 
 for mu in mus:
     logistic_saturation_transformer = LogisticSaturationTransformer(mu=mu)
 
-    df[f"media_cost_saturation_mu{mu:.4f}"] = logistic_saturation_transformer.fit_transform(df["media_cost_adstock"])
+    df[f"media_cost_saturation_mu{mu:.2f}"] = logistic_saturation_transformer.fit_transform(df["media_cost_adstock"])
 
     df_subset = df[df["day_of_week"] == 7]
 
 
     sns.lineplot(
         x="media_cost_adstock",
-        y=f"media_cost_saturation_mu{mu:.4f}",
+        y=f"media_cost_saturation_mu{mu:.2f}",
         label=f"mu = {mu}",
         data=df_subset,
         ax=ax
@@ -97,9 +97,9 @@ ax.set(title=f"Saturation curve with logistic regression");
 plt.savefig('datagen_images/media_cost_saturation_curve_logistic_transform.png')
 
 # Test beta-hill transformation
-K = 0.8
-S = 0.7
-B = 0.4
+K = 100
+S = 6
+B = 1
 bh_transformer = BetaHillTransformation(K=K, S=S, beta=B)
 df["media_cost_saturation_beta_hill"] = bh_transformer.transform(df["media_cost_adstock"])
 # Plot the results
@@ -126,7 +126,7 @@ fig, axes = plt.subplots(
   layout="constrained"
 )
 
-features = ["media_cost", "media_cost_adstock","media_cost_saturation_mu0.0030", "media_cost_saturation_beta_hill"]
+features = ["media_cost", "media_cost_adstock","media_cost_saturation_mu0.02", "media_cost_saturation_beta_hill"]
 for i, (col, ax) in enumerate(zip(features, axes.flatten())):
     sns.lineplot(x="date", y=col, color=f"C{i}", label=col, data=df_subset, ax=ax)
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
@@ -144,14 +144,14 @@ df["beta"] =  (np.arange(start=0.0, stop=1.0, step=1/n) + 1) ** (-1.8)
 df_subset = df[df["day_of_week"] == 7]
 
 fig, ax = plt.subplots()
-sns.lineplot(x="date", y="beta", color="C5", data=df_subset, ax=ax)
+sns.lineplot(x="date", y="beta", color="C3", data=df_subset, ax=ax)
 ax.set(title="Diminishing return curve over time", ylabel=None)
-
+ax.set_ylabel(r"$\beta$ value")
 plt.savefig('datagen_images/diminishing_return_curve.png')
 
-df["media_effect"] = df["beta"] * df["media_cost_saturation_mu0.0030"]
+df["media_effect"] = df["beta"] * df["media_cost_saturation_mu0.02"]
 
-features = ["media_cost", "media_cost_adstock","media_cost_saturation_mu0.0010", "media_cost_saturation_beta_hill", "media_effect"]
+features = ["media_cost", "media_cost_adstock","media_cost_saturation_mu0.02", "media_cost_saturation_beta_hill", "media_effect"]
 
 df_subset = df[df["day_of_week"] == 7]
 
@@ -177,12 +177,14 @@ g = sns.lmplot(
     x="media_cost_adstock",
     y="media_effect",
     hue="year",
-    palette="viridis",
+    palette="husl",
     lowess=True,
-    scatter_kws={"edgecolor": "black", "alpha": 0.5},
+    scatter_kws={"edgecolor": "black", "alpha": 0.7},
     height=6,
     data=df
 )
+g.ax.set_xlabel("media cost with adstock")
+g.ax.set_ylabel("media effect")
 g.figure.suptitle("Media Cost Effect", y=1.02);
 plt.savefig('datagen_images/media_cost_effect_yearly.png')
 
@@ -198,18 +200,18 @@ ax.set(title="Media Cost Effect Ratio")
 plt.savefig(f'datagen_images/media_cost_effect_ratio.png')
 
 # Simulate trend and seasonality
-df["trend"] = (np.linspace(start=0.0, stop=50, num=n) + 10)**(1/4) - 1 
+df["trend"] = (np.linspace(start=0.0, stop=50, num=n) + 10)**(1/3) - 1 
 
-df["cs"] = - np.sin(2 * 2 * np.pi * df["dayofyear"] / 365.5) 
-df["cc"] = np.cos(1 * 2 * np.pi * df["dayofyear"] / 365.5)
-df["seasonality"] = 0.25 * (df["cs"] + df["cc"])
+df["cs"] = - np.sin(1 * 2 * np.pi * df["dayofyear"] / 365.5) 
+df["cc"] = np.cos(2 * 2 * np.pi * df["dayofyear"] / 365.5)
+df["seasonality"] = 0.2 * (df["cs"] + df["cc"])
 df_subset = df[df["day_of_week"] == 7]
 
 fig, ax = plt.subplots()
 sns.lineplot(x="date", y="trend", color="C4", label="trend", data=df_subset, ax=ax)
 sns.lineplot(x="date", y="seasonality", color="C6", label="seasonality", data=df_subset, ax=ax)
 ax.legend(loc="upper left")
-ax.set(title="Trend & Seasonality Components", ylabel="")
+ax.set(title="Trend and Seasonality", ylabel="")
 plt.savefig(f'datagen_images/trend_seasonality.png')
 
 #Create intercept variable and noise for the data
@@ -219,14 +221,18 @@ np.random.seed(seed)
 jackpotsizes = jackpotgenerator(df["date"].tolist())
 df["jackpot_size"] = jackpotsizes
 
-df_subset = df[df["day_of_week"] == 7]
-fig, ax = plt.subplots()
-sns.lineplot(x="date", y="jackpot_size", color="C1", data=df_subset, ax=ax)
-ax.set(title="Size of the jackpot")
 
 # Generate a jackpot size effect for the media effect(Confounder)
-# media_effect_with_jackpot = jackpot_size * media_effect
-df.eval(expr="media_effect_with_jp = media_effect * jackpot_size", inplace=True)
+# media_effect_with_jackpot = jackpot_size * media_effect/3, therefore the media will be worse when jackpot size is small
+df.eval(expr="media_effect_with_jp = media_effect * jackpot_size*0.2", inplace=True)
+
+df_subset = df[df["day_of_week"] == 7]
+fig, ax = plt.subplots()
+sns.lineplot(x="date", y="media_effect", color="C2", label="media effect", data=df_subset, ax=ax)
+sns.lineplot(x="date", y="media_effect_with_jp", color="C8", label="media effect with jackpot size", data=df_subset, ax=ax)
+ax.legend(loc="upper left")
+ax.set(title="Media effect with jackpot size", ylabel="effect")
+plt.savefig(f'datagen_images/mediaeffect_w_jackpot.png')
 
 df["intercept"] = 3.0
 df["trend_plus_intercept"] = df["trend"] + df["intercept"]
@@ -238,6 +244,18 @@ df.eval(expr="sales = intercept + trend + seasonality + media_effect_with_jp + e
 
 df_subset = df[df["day_of_week"] == 7]
 fig, ax = plt.subplots()
-sns.lineplot(x="date", y="sales", color="black", data=df_subset, ax=ax)
-ax.set(title="Sales (Target Variable)")
-plt.show()
+fig.set_figheight(6)
+fig.set_figwidth(15)
+sns.lineplot(x="date", y="sales", color="blue", data=df_subset, ax=ax)
+ax.set(title="Generated sales of the product")
+
+plt.savefig(f'datagen_images/sales_of_product.png')
+
+print("Data generated:")
+print(df.head())
+print("info about the data")
+print(df.info())
+df.to_csv('data/data.csv', sep=';', index=True)
+print("")
+print("DATA SAVED!")
+print("-----------")
