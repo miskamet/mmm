@@ -36,7 +36,7 @@ def bayes_linreg_model(jackpot_category,spends, sales, dayofyear, index):
     # j-pot categories
     n_jackpot_categories = len(np.unique(jackpot_category)) # infer number of categories
     with plate("jackpot_plate", n_jackpot_categories):  # Use a plate for categories
-        c_jackpot = numpyro.sample('c_jackpot', dist.Normal(0, 5)) # Prior for each category
+        c_jackpot = numpyro.sample('c_jackpot', dist.Normal(0, 10)) # Prior for each category
     #jackpot prior
     jackpot_effect = c_jackpot[jackpot_category]
     jackpot = jackpot_effect*jackpot_category
@@ -53,7 +53,7 @@ def bayes_linreg_model(jackpot_category,spends, sales, dayofyear, index):
     seasonality = day_of_year_effect[dayofyear -1]  # dayofyear is 1-indexed, so we adjust
 
     # Coefficiency spends prior
-    coef_spends = numpyro.sample('coef_spends', dist.Normal(jnp.mean(spends)/1000,jnp.std(spends)/1000))
+    coef_spends = numpyro.sample('coef_spends', dist.Normal(jnp.mean(spends)/1000,jnp.std(spends)/500))
     media_effect = coef_spends*spends
     epsilon = numpyro.sample("epsilon", dist.Normal(0, 0.05))
 
@@ -66,4 +66,5 @@ def bayes_linreg_model(jackpot_category,spends, sales, dayofyear, index):
 
 
 
-    
+
+#TODO: Create a model where jackpot level is a confounder, effecting both sales and media channels 

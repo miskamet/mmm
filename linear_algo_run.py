@@ -101,7 +101,7 @@ plt.savefig("results/posterior_of_jackpot_coef.png")
 
 # Plot prior vs posterior plots in the same histogram
 fig, ax = plt.subplots()
-coef_prior= np.random.normal(jnp.mean(jnp.array(df_test['media_cost_adstock'].values)/1000), jnp.std(jnp.array(df_test['media_cost_adstock'].values)/1000), coef_spends.shape[0])
+coef_prior= np.random.normal(jnp.mean(jnp.array(df_test['media_cost_adstock'].values)/1000), jnp.std(jnp.array(df_test['media_cost_adstock'].values)/500), coef_spends.shape[0])
 sns.histplot(data=coef_prior, stat="density",color='blue', label='Prior', alpha=0.6,binwidth=1e-2)
 sns.histplot(data=coef_spends, stat="density",color='red', label = 'Posterior', alpha=0.6, binwidth=1e-4)
 ax.axvline(jnp.mean(coef_spends), color='black', linestyle='--', label=f'posterior mean: {jnp.mean(coef_spends):.4f}')
