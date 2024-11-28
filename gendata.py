@@ -226,6 +226,12 @@ df["jackpot_size"] = jackpotsizes
 # media_effect_with_jackpot = jackpot_size * media_effect/3, therefore the media will be worse when jackpot size is small
 df.eval(expr="media_effect_with_jp = media_effect * jackpot_size*0.2", inplace=True)
 
+#Plot scatterplot correlation between jackpot size and media_effect_with_jp
+fig, ax = plt.subplots()
+sns.scatterplot(data=df, x="jackpot_size", y="media_effect_with_jp", ax=ax, hue='jackpot_size')
+ax.set(title = 'Correlation between media effect and jackpot size')
+plt.savefig(f'datagen_images/correlation_jackpot_size_media_effect.png')
+
 df_subset = df[df["day_of_week"] == 7]
 fig, ax = plt.subplots()
 sns.lineplot(x="date", y="media_effect", color="C2", label="media effect", data=df_subset, ax=ax)
