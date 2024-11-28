@@ -8,8 +8,8 @@ import numpyro
 import numpyro.distributions as dist
 from numpyro.infer import MCMC, NUTS
 from numpyro import plate
-numpyro.set_host_device_count(4)
-os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
+numpyro.set_host_device_count(8)
+os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=8'
 
 def bayes_linreg_model(jackpot_category,spends, sales, dayofyear, index):
     '''
