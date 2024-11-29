@@ -47,10 +47,10 @@ def bayes_linreg_model(jackpot_category,spends, sales, dayofyear, index):
 
     # Seasonality (using day_of_year as a categorical variable)
     n_days = 366  # Maximum possible days in a year
-    with plate("day_of_year_plate", n_days):
-        day_of_year_effect = numpyro.sample("day_of_year_effect", dist.Normal(0, 1))  # Seasonality effect for each day
-
-    seasonality = day_of_year_effect[dayofyear -1]  # dayofyear is 1-indexed, so we adjust
+    with plate("day_of_year_plate", n_days):  # Plate goes outside
+        day_of_year_effect = numpyro.sample("day_of_year_effect", dist.Normal(0, 1))
+    seasonality = day_of_year_effect[dayofyear - 1]
+     # dayofyear is 1-indexed, so we adjust
 
     # Coefficiency spends prior
     coef_spends = numpyro.sample('coef_spends', dist.Normal(jnp.mean(spends)/1000,jnp.std(spends)/500))

@@ -1,0 +1,12 @@
+digraph {
+	seasonality [label=seasonality color=gainsboro style=filled]
+	trend [label=trend color=gainsboro style=filled]
+	media [label=media color=forestgreen style=filled]
+	jackpot [label=jackpot color=firebrick3 style=filled]
+	sales [label=sales color=gold style=filled]
+	jackpot -> media
+	jackpot -> sales
+	media -> sales
+	seasonality -> sales
+	trend -> sales
+}

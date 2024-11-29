@@ -3,10 +3,16 @@ marketing media mix modelling with data generation and bayesian hierarchical str
 
 ## First things first
 
+You should use a virtual environment with python version 3.11.
+Install python packages using
+```
+pip install -r requirements.txt
+```
+
 from configs.py you can set available devices for the jax.
 
 ## Data generation
-Generate suitable data for yourself pyr modifying the gendata.py accordingly and running
+Generate suitable data for yourself by modifying the gendata.py accordingly and running
 ```
 python gendata.py
 ```

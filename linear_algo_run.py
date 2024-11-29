@@ -20,7 +20,7 @@ from models import bayes_linreg_model
 plt.style.use('bmh')
 
 df = pd.read_csv('data/data.csv', sep=';', index_col=0)
-df = df[['date','year','month','week','day_of_week','dayofyear','media_cost_adstock','jackpot_size','sales']]
+df = df[['date','year','month','week','day_of_week','dayofyear','media_cost','jackpot_size','sales']]
 
 print("data head")
 print(df.head())
@@ -37,19 +37,19 @@ rng_key = jax.random.PRNGKey(0)
 print("")
 print("Starting the MCMC")
 print("-----------------")
-mcmc.run(jax.random.PRNGKey(0),jackpot_category=jnp.array(df_train['jackpot_size']),spends=jnp.array(df_train['media_cost_adstock']),sales=jnp.array(df_train['sales']),dayofyear=jnp.array(df_train['dayofyear']),index=jnp.array(df_train.index))
+mcmc.run(jax.random.PRNGKey(0),jackpot_category=jnp.array(df_train['jackpot_size']),spends=jnp.array(df_train['media_cost']),sales=jnp.array(df_train['sales']),dayofyear=jnp.array(df_train['dayofyear']),index=jnp.array(df_train.index))
 linreg_sample=mcmc.get_samples()
 mcmc.print_summary(exclude_deterministic=True)
 # Do some forecasting
 sales_test = df_test["sales"].values
 #TODO: Check again the predictions -dict mean and sales, what is the shapes of those?
 predictive = Predictive(bayes_linreg_model, linreg_sample)
-predictions = predictive(jax.random.PRNGKey(1),jackpot_category=jnp.array(df_test['jackpot_size']),spends=jnp.array(df_test['media_cost_adstock']),sales=jnp.array(df_test['sales']),dayofyear=jnp.array(df_test['dayofyear']),index=jnp.array(df_test.index))
+predictions = predictive(jax.random.PRNGKey(1),jackpot_category=jnp.array(df_test['jackpot_size']),spends=jnp.array(df_test['media_cost']),sales=jnp.array(df_test['sales']),dayofyear=jnp.array(df_test['dayofyear']),index=jnp.array(df_test.index))
 
 y_pred = jnp.mean(predictions["sales"], axis=0)
 
-print("mean:" +str(jnp.mean(df_test['media_cost_adstock'].values)/1000))
-print("std:" +str(jnp.std(df_test['media_cost_adstock'].values)/1000))
+print("mean:" +str(jnp.mean(df_test['media_cost'].values)/1000))
+print("std:" +str(jnp.std(df_test['media_cost'].values)/1000))
 
 
 absolute_errors = jnp.abs(y_pred - sales_test)
@@ -101,11 +101,11 @@ plt.savefig("results/posterior_of_jackpot_coef.png")
 
 # Plot prior vs posterior plots in the same histogram
 fig, ax = plt.subplots()
-coef_prior= np.random.normal(jnp.mean(jnp.array(df_test['media_cost_adstock'].values)/1000), jnp.std(jnp.array(df_test['media_cost_adstock'].values)/500), coef_spends.shape[0])
+coef_prior= np.random.normal(jnp.mean(jnp.array(df_test['media_cost'].values)/1000), jnp.std(jnp.array(df_test['media_cost'].values)/500), 200_000)
 sns.histplot(data=coef_prior, stat="density",color='blue', label='Prior', alpha=0.6,binwidth=1e-2)
 sns.histplot(data=coef_spends, stat="density",color='red', label = 'Posterior', alpha=0.6, binwidth=1e-4)
-ax.axvline(jnp.mean(coef_spends), color='black', linestyle='--', label=f'posterior mean: {jnp.mean(coef_spends):.4f}')
-ax.axvline(jnp.mean(jnp.array(df_test['media_cost_adstock'].values)/1000), color='black', linestyle='--', label=f'prior mean: {jnp.mean(coef_spends):.4f}')
+ax.axvline(jnp.mean(coef_spends), color='black', linestyle='--', label=f'posterior mean: {jnp.mean(coef_spends):.4f}', linewidth=0.5)
+ax.axvline(jnp.mean(coef_prior), color='black', linestyle='--', label=f'prior mean: {jnp.mean(coef_prior):.4f}', linewidth = 0.5)
 ax.legend(loc='best')
 ax.set(title = 'prior vs posterior distributions')
 plt.savefig("results/prior_vs_posterior_of_media_coef.png")
