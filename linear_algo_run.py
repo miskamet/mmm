@@ -15,18 +15,25 @@ from numpyro.infer import MCMC, NUTS, HMC, Predictive
 
 devices = config.devices
 
-from models import bayes_linreg_model
+from models.linalgo_model import bayes_linreg_model
 
 plt.style.use('bmh')
 
 df = pd.read_csv('data/data.csv', sep=';', index_col=0)
 df = df[['date','year','month','week','day_of_week','dayofyear','media_cost','jackpot_size','sales']]
-
+modeldf = df[['date','dayofyear','jackpot_size','media_cost','sales']]
 print("data head")
 print(df.head())
 # split df to train and test
 split = int(np.floor(0.8*len(df)))
 df_train, df_test = df[:split], df[split:]
+spends=jnp.ones(14)
+jackpot_category=jnp.arange(1,15)
+sales=jnp.ones(14)
+dayofyear=jnp.arange(1,15)
+index=jnp.arange(1,15)
+
+numpyro.render_model(bayes_linreg_model,model_args=(jackpot_category,spends,sales,dayofyear,index), filename='models/linear_model.png', render_params=True)
 
 # start the linear algo run
 numpyro.set_host_device_count(devices)
@@ -73,7 +80,7 @@ plt.title("Forecasting Sales from marketing efforts (90% HPDI)")
 plt.savefig('results/linalgo_prediction.png')
 
 # Plot posterior distributions for sales data, jackpot data and media cost coefficient
-coef_spends = linreg_sample["coef_spends"]
+coef_spends = linreg_sample["media_coef"]
 c_jackpot = linreg_sample["c_jackpot"]
 plt.figure(figsize=(10, 6))
 fig = sns.histplot(data=coef_spends, stat="density", binwidth=1e-4)
