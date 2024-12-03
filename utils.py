@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+import jax.numpy as jnp
 
 
 class GeometricAdstockTransformer(BaseEstimator, TransformerMixin):
@@ -25,18 +26,18 @@ class GeometricAdstockTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, x):
         if isinstance(x, pd.DataFrame):
-            x = x.to_numpy()
+            x = jnp.array(x)
         cycles = [
-            np.append(
-                arr=np.zeros(shape=x.shape)[:i],
+            jnp.append(
+                arr=jnp.zeros(shape=x.shape)[:i],
                 values=x[: x.shape[0] - i],
                 axis=0
             ) 
             for i in range(self.l)
         ]
-        x_cycle = np.stack(cycles, axis=0)
-        w = np.array([np.power(self.alpha, i) for i in range(self.l)])
-        return np.tensordot(a=w, b=x_cycle, axes=1)
+        x_cycle = jnp.stack(cycles, axis=0)
+        w = jnp.array([jnp.power(self.alpha, i) for i in range(self.l)])
+        return jnp.tensordot(a=w, b=x_cycle, axes=1)
 
 class LogisticSaturationTransformer(BaseEstimator, TransformerMixin):
 
@@ -47,7 +48,7 @@ class LogisticSaturationTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, x):
-        return (1 - np.exp(-self.mu * x)) / (1 + np.exp(-self.mu * x))
+        return (1 - jnp.exp(-self.mu * x)) / (1 + jnp.exp(-self.mu * x))
     
 class BetaHillTransformation(BaseEstimator, TransformerMixin):
 
@@ -84,4 +85,26 @@ def jackpotgenerator(datelist):
     return jackpot_size
     
 
-    
+def geometric_adstock(x, alpha, l_max, normalize):
+    """Vectorized geometric adstock transformation."""
+    cycles = [
+        np.concatenate([jnp.zeros(shape=x.shape)[:i], x[: x.shape[0] - i]])
+        for i in range(l_max)
+    ]
+    x_cycle = jnp.stack(cycles)
+    x_cycle = jnp.transpose(x=x_cycle, axes=[1, 2, 0])
+    w = jnp.as_tensor_variable([jnp.power(alpha, i) for i in range(l_max)])
+    w = jnp.transpose(w)[None, ...]
+    w = w / jnp.sum(w, axis=2, keepdims=True) if normalize else w
+    return jnp.sum(jnp.mul(x_cycle, w), axis=2)
+
+
+def logistic_saturation(x, lam):
+    """Logistic saturation transformation."""
+    return (1 - jnp.exp(-lam * x)) / (1 + jnp.exp(-lam * x))
+
+def fourier_modes(X):
+    return jnp.cos(2*2*jnp.pi*X) + jnp.sin(2*2*jnp.pi*X)
+
+def trend_transform(X):
+    return jnp.log10(1+X)

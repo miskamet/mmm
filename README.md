@@ -19,10 +19,10 @@ python gendata.py
 
 this will create a csv-file of generated data inside 'data/'-folder. It will also dump a bunch of images into 'datagen_images/'-folder
 
-## Linear bayesian algorithm
+## Linear bayesian algorithm AND confounding model
 Bayesian models used can be found inside models.py
-Run Bayesian linear algorithm by running 
+Run Bayesian algorithms by running 
 ```
-python linear_algo_run.py
+python algo_runs.py
 ```
 This will generate images into 'results/'-folder.
