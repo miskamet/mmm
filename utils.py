@@ -65,23 +65,26 @@ class BetaHillTransformation(BaseEstimator, TransformerMixin):
 
 
 def jackpotgenerator(datelist):
-    for i in datelist:
+    for idx, i in enumerate(datelist):
         if i ==datelist[0]:
             jackpot_size = [1]
         else:
-            jackpot = jackpot_size[-1]
-            win_prob = np.random.lognormal(mean=0, sigma=1)
-            if win_prob > 2.0:
+            if idx % 7 ==0:
+                jackpot = jackpot_size[-1]
+                win_prob = np.random.lognormal(mean=0, sigma=1)
+                if win_prob > 2.3:
                     # pot is won, jackpot size goes to 1
                     jackpot=1
                     jackpot_size.append(jackpot)
-            else:
+                else:
                     #no win, increase jackpot size and go on
                     if jackpot == 15:
                         jackpot = 15
                     else:
                         jackpot +=1
                     jackpot_size.append(jackpot)
+            else:
+                jackpot_size.append(jackpot_size[-1])
     return jackpot_size
     
 

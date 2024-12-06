@@ -83,16 +83,17 @@ MAPE = mean_absolute_percentage_error(sales_scaled, y_fit)
 msqrt = root_mean_squared_error(sales_scaled, y_fit)
 print("")
 print("MAPE: {:.8f}, rmse: {:.8f}".format(MAPE, msqrt))
-
+date_steps = 21
 # Plot some results 
 plt.figure(figsize=(18, 10))
-plt.plot(df["date"][::7],sales_scaled[::7], label = 'true sales')
-hpd_low, hpd_high = hpdi(linreg_sample["mean"].reshape(5600,1461), prob=0.99, axis=0) # Change 5600 if you change sample drawn from mcmc
-plt.plot(df["date"][::7], y_fit[::7], label = 'predictions')
-plt.fill_between(df["date"][::7],hpd_low[::7], hpd_high[::7], alpha=0.3)
+plt.plot(df["date"][::date_steps],sales_scaled[::date_steps], label = 'true sales')
+hpd_low, hpd_high = hpdi(linreg_sample["mean"].reshape(5600,1461), prob=0.80, axis=0) # Change 5600 if you change sample drawn from mcmc
+plt.plot(df["date"][::date_steps], y_fit[::date_steps], label = 'predictions')
+plt.fill_between(df["date"][::date_steps],hpd_low[::date_steps], hpd_high[::date_steps], alpha=0.3)
 plt.legend(loc='upper left')
 plt.ylabel('sales')
 plt.xlabel('date')
+plt.xticks(rotation=45, ha="right")
 plt.title("Forecasting Sales from marketing efforts (90% HPDI)")
 plt.savefig('results/linalgo_prediction.png')
 
@@ -140,6 +141,7 @@ saturations = linreg_sample["media_saturated"]
 # ax.set(title = 'prior vs posterior distributions')
 # plt.savefig("results/prior_vs_posterior_of_media_coef.png")
 # 
+#Render confounder model
 spends=jnp.ones(14)
 jackpot_category=jnp.arange(1,15)
 sales=jnp.ones(14)
@@ -148,8 +150,9 @@ index=jnp.arange(1,15)
 
 numpyro.render_model(bayes_confounder_model,model_args=(jackpot_category,spends,sales,dayofyear,index), filename='models/confounding.png', render_params=True)
 
-algo = NUTS(bayes_confounder_model, step_size=0.002, target_accept_prob=0.9, adapt_step_size=True)
-mcmc = MCMC(algo, num_samples=700, num_warmup=300,num_chains=8,chain_method='parallel')
+#Run mcmc for confounder using the same data as before
+confounder_algo = NUTS(bayes_confounder_model, step_size=0.002, target_accept_prob=0.9, adapt_step_size=True)
+mcmc = MCMC(confounder_algo, num_samples=700, num_warmup=300,num_chains=8,chain_method='parallel')
 
 mcmc.run(rng_key, **model_args)
 linreg_sample=mcmc.get_samples()

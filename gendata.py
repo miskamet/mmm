@@ -31,7 +31,11 @@ n = len(df)
 
 # Simulate media cost feature using uniform distribution
 media_cost = np.random.uniform(0,1, size=n)
-df["media_cost"] = 100*np.where(media_cost >0.3, media_cost, media_cost/4)
+# Generate a jackpot sizes for the model and jackpot effects regarding those.
+jackpotsizes = jackpotgenerator(df["date"].tolist())
+df["jackpot_size"] = jackpotsizes
+#incorporate jackpot size in media costs
+df["media_cost"] = 10*np.where(media_cost >0.4, media_cost, media_cost/4)*jackpotsizes*0.4
 # visualize the media cost using only sundays (does not matter cause the data is uniform)
 df_subset = df[df["day_of_week"] == 7]
 
@@ -44,12 +48,12 @@ plt.savefig('datagen_images/media_cost.png')
 #initialize the adstock effects you want
 alpha = 0.5
 # give the length of adstock effect in days. In veikkaus, this is quite small, since there is all the time new stuff coming
-l = 14
+l = 8
 geometric_adstock_transformer = GeometricAdstockTransformer(alpha=alpha, l=l)
 
 # add transformed variables to data
 
-df["media_cost_adstock"] = geometric_adstock_transformer.transform(X=df["media_cost"])
+df["media_cost_adstock"] = geometric_adstock_transformer.transform(X=df["media_cost"].values)
 
 # Plot and save the transformed data
 
@@ -72,13 +76,13 @@ plt.savefig('datagen_images/media_cost_adstock_vs_without.png')
 
 # logistic saturation transformation for the media costs
 
-mus = [1e-2,2e-2,3e-2,4e-2]
+mus = [1e-2,1.5e-2,2e-2,2.5e-2,3e-2]
 fig, ax = plt.subplots(figsize=(7, 6))
 
 for mu in mus:
     logistic_saturation_transformer = LogisticSaturationTransformer(mu=mu)
 
-    df[f"media_cost_saturation_mu{mu:.2f}"] = logistic_saturation_transformer.fit_transform(df["media_cost_adstock"])
+    df[f"media_cost_saturation_mu{mu:.2f}"] = logistic_saturation_transformer.fit_transform(df["media_cost_adstock"].values)
 
     df_subset = df[df["day_of_week"] == 7]
 
@@ -86,7 +90,7 @@ for mu in mus:
     sns.lineplot(
         x="media_cost_adstock",
         y=f"media_cost_saturation_mu{mu:.2f}",
-        label=f"mu = {mu}",
+        label=f"mu = {mu:.2f}",
         data=df_subset,
         ax=ax
     )
@@ -97,7 +101,7 @@ ax.set(title=f"Saturation curve with logistic regression");
 plt.savefig('datagen_images/media_cost_saturation_curve_logistic_transform.png')
 
 # Test beta-hill transformation
-K = 100
+K = 30
 S = 6
 B = 1
 bh_transformer = BetaHillTransformation(K=K, S=S, beta=B)
@@ -140,7 +144,7 @@ plt.savefig('datagen_images/media_cost_all_transformations.png')
 
 # Apply dim return curve effect
 
-df["beta"] =  (np.arange(start=0.0, stop=1.0, step=1/n) + 1) ** (-1.8)
+df["beta"] =  (np.arange(start=0.0, stop=1.0, step=1/n) + 1) ** (-1.2)
 df_subset = df[df["day_of_week"] == 7]
 
 fig, ax = plt.subplots()
@@ -202,9 +206,9 @@ plt.savefig(f'datagen_images/media_cost_effect_ratio.png')
 # Simulate trend and seasonality
 df["trend"] = (np.linspace(start=0.0, stop=50, num=n) + 10)**(1/3) - 1 
 
-df["cs"] = - np.sin(1 * 2 * np.pi * df["dayofyear"] / 365.5) 
-df["cc"] = np.cos(2 * 2 * np.pi * df["dayofyear"] / 365.5)
-df["seasonality"] = 0.2 * (df["cs"] + df["cc"])
+df["cs"] = - np.sin(2 * 2 * np.pi * df["dayofyear"] / 365.5) 
+df["cc"] = np.cos(1 * 2 * np.pi * df["dayofyear"] / 365.5)
+df["seasonality"] = 0.3 * (df["cs"] + df["cc"])
 df_subset = df[df["day_of_week"] == 7]
 
 fig, ax = plt.subplots()
@@ -217,36 +221,34 @@ plt.savefig(f'datagen_images/trend_seasonality.png')
 #Create intercept variable and noise for the data
 np.random.seed(seed)
 
-# Generate a jackpot sizes for the model and jackpot effects regarding those.
-jackpotsizes = jackpotgenerator(df["date"].tolist())
-df["jackpot_size"] = jackpotsizes
+
 
 
 # Generate a jackpot size effect for the media effect(Confounder)
 # media_effect_with_jackpot = jackpot_size * media_effect/3, therefore the media will be worse when jackpot size is small
-df.eval(expr="media_effect_with_jp = media_effect * jackpot_size*0.2", inplace=True)
 
-#Plot scatterplot correlation between jackpot size and media_effect_with_jp
+
+#Plot scatterplot correlation between jackpot size and media cost
 fig, ax = plt.subplots()
-sns.scatterplot(data=df, x="jackpot_size", y="media_effect_with_jp", ax=ax, hue='jackpot_size')
+sns.scatterplot(data=df, x="jackpot_size", y="media_cost", ax=ax, hue='jackpot_size')
 ax.set(title = 'Correlation between media effect and jackpot size')
-plt.savefig(f'datagen_images/correlation_jackpot_size_media_effect.png')
+plt.savefig(f'datagen_images/correlation_jackpot_size_media_cost.png')
 
 df_subset = df[df["day_of_week"] == 7]
 fig, ax = plt.subplots()
 sns.lineplot(x="date", y="media_effect", color="C2", label="media effect", data=df_subset, ax=ax)
-sns.lineplot(x="date", y="media_effect_with_jp", color="C8", label="media effect with jackpot size", data=df_subset, ax=ax)
+sns.lineplot(x="date", y="media_cost", color="C8", label="media cost", data=df_subset, ax=ax)
 ax.legend(loc="upper left")
 ax.set(title="Media effect with jackpot size", ylabel="effect")
-plt.savefig(f'datagen_images/mediaeffect_w_jackpot.png')
+plt.savefig(f'datagen_images/mediaeffect_and_costs.png')
 
 df["intercept"] = 3.0
 df["trend_plus_intercept"] = df["trend"] + df["intercept"]
-
+amplitude = 10
 # the noise variance is increasing to make sure the resulting time series has constant variance
 sigma_epsilon  = np.linspace(start=3e-2, stop=7e-2, num=n)
 df["epsilon"] = np.random.normal(loc=0.0, scale=sigma_epsilon)
-df.eval(expr="sales = intercept + trend + seasonality + media_effect_with_jp + epsilon + jackpot_size", inplace=True)
+df.eval(expr=f"sales = {amplitude}*(intercept + trend + seasonality + media_effect + epsilon + jackpot_size)", inplace=True)
 
 df_subset = df[df["day_of_week"] == 7]
 fig, ax = plt.subplots()
@@ -265,3 +267,13 @@ df.to_csv('data/data.csv', sep=';', index=True)
 print("")
 print("DATA SAVED!")
 print("-----------")
+# Calculate ROAS from the data generated
+df.eval(expr=f"sales_without_channel = {amplitude}*(intercept + trend + seasonality + epsilon + jackpot_size)", inplace=True)
+sales_without_channel = df["sales_without_channel"]
+df.eval(expr=f"ROAS = sales - sales_without_channel ", inplace=True)
+roas_mean = df["ROAS"].mean()
+fig, ax = plt.subplots()
+df_subset = df[df["day_of_week"] == 7]
+sns.lineplot(x="date", y="ROAS", color='red', data=df_subset, ax=ax, label=f"Mean: {roas_mean:.2f}")
+ax.set(title="Estimated ROAS")
+plt.savefig("datagen_images/ROAS.png")
